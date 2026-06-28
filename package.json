@@ -1,0 +1,25 @@
+{
+  "name": "openlens-chat-extension",
+  "version": "0.1.0",
+  "description": "AI chat sidebar for OpenLens/FreeLens — ask natural-language questions about your active Kubernetes cluster",
+  "keywords": ["lens-extension"],
+  "renderer": "dist/renderer.js",
+  "engines": {
+    "lens": "^6.3.0",
+    "node": "^16.14.2"
+  },
+  "scripts": {
+    "build": "webpack --config webpack.config.js",
+    "dev": "webpack --config webpack.config.js --watch"
+  },
+  "devDependencies": {
+    "@k8slens/extensions": "^6.5.2",
+    "@types/react": "^17.0.52",
+    "css-loader": "^6.0.0",
+    "style-loader": "^3.0.0",
+    "ts-loader": "^9.4.2",
+    "typescript": "^5.0.0",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^5.0.1"
+  }
+}

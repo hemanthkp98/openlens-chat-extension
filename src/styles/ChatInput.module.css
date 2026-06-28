@@ -1,0 +1,141 @@
+/*
+ * ChatInput.module.css
+ *
+ * Auto-resizing textarea with send button, loading spinner,
+ * and live character counter.
+ */
+
+/* ── Outer container ──────────────────────────────────────────────────── */
+
+.container {
+  padding: 12px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* ── Row (textarea + button) ──────────────────────────────────────────── */
+
+.inputRow {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+/* ── Textarea ─────────────────────────────────────────────────────────── */
+
+.textarea {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: var(--border-radius, 12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary, #e8e8f0);
+  font-size: 14px;
+  font-family: inherit;
+  line-height: 1.5;
+  resize: none;
+  overflow-y: hidden;
+  transition: border-color 0.2s ease, background 0.2s ease;
+  outline: none;
+  min-height: 42px;
+}
+
+.textarea::placeholder {
+  color: var(--text-secondary, #a0a0b8);
+  opacity: 0.7;
+}
+
+.textarea:focus {
+  border-color: var(--primary, #6482ff);
+  background: rgba(255, 255, 255, 0.08);
+  box-shadow: 0 0 0 3px rgba(100, 130, 255, 0.12);
+}
+
+.textarea:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Send button ──────────────────────────────────────────────────────── */
+
+.sendButton {
+  flex-shrink: 0;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary, #6482ff);
+  color: #ffffff;
+  font-size: 18px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s ease, background 0.2s ease, opacity 0.2s ease;
+  box-shadow: 0 2px 8px rgba(100, 130, 255, 0.3);
+}
+
+.sendButton:hover:not(:disabled) {
+  transform: scale(1.07);
+  background: color-mix(in srgb, var(--primary, #6482ff) 85%, white);
+}
+
+.sendButton:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.sendButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+/* ── Spinner (loading state) ──────────────────────────────────────────── */
+
+.spinner {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Meta row (hint + counter) ────────────────────────────────────────── */
+
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2px;
+}
+
+.hint {
+  font-size: 11px;
+  color: var(--text-secondary, #a0a0b8);
+  opacity: 0.6;
+}
+
+.counter {
+  font-size: 11px;
+  color: var(--text-secondary, #a0a0b8);
+  font-variant-numeric: tabular-nums;
+  transition: color 0.2s ease;
+}
+
+.counterWarn {
+  color: #f0a030;
+}
+
+.counterError {
+  color: #ff6060;
+  font-weight: 600;
+}

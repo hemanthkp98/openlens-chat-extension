@@ -1,0 +1,162 @@
+/*
+ * MessageBubble.module.css
+ *
+ * Individual message bubbles:
+ *  - User → right-aligned, accent background
+ *  - Assistant → left-aligned, muted background
+ *  - Error → left-aligned, red-tinted
+ * Relative timestamp visible on hover.
+ * Fade-in animation (150ms) for all new messages.
+ */
+
+/* ── Row (flex container for alignment) ──────────────────────────────── */
+
+.row {
+  display: flex;
+  width: 100%;
+  margin: 3px 0;
+  animation: fadeIn 0.15s ease-out forwards;
+}
+
+.rowUser {
+  justify-content: flex-end;
+}
+
+.rowAssistant {
+  justify-content: flex-start;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Bubble base ──────────────────────────────────────────────────────── */
+
+.bubble {
+  position: relative;
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 14px;
+  line-height: 1.55;
+  word-break: break-word;
+  cursor: default;
+}
+
+/* ── User bubble ──────────────────────────────────────────────────────── */
+
+.bubbleUser {
+  background: var(--primary, #6482ff);
+  color: #ffffff;
+  border-radius: 18px 18px 4px 18px;
+}
+
+/* ── Assistant bubble ─────────────────────────────────────────────────── */
+
+.bubbleAssistant {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-primary, #e8e8f0);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 18px 18px 18px 4px;
+}
+
+/* ── Error bubble ─────────────────────────────────────────────────────── */
+
+.bubbleError {
+  background: rgba(220, 50, 50, 0.12);
+  color: #ff7b7b;
+  border: 1px solid rgba(220, 50, 50, 0.3);
+  border-radius: 18px 18px 18px 4px;
+}
+
+.errorIcon {
+  margin-right: 4px;
+}
+
+/* ── Timestamp (visible on hover) ────────────────────────────────────── */
+
+.timestamp {
+  display: block;
+  font-size: 10px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  margin-top: 4px;
+  color: inherit;
+  /* User bubble: slightly lighter; assistant: muted */
+}
+
+.bubbleUser .timestamp {
+  text-align: right;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.bubbleAssistant .timestamp,
+.bubbleError .timestamp {
+  text-align: left;
+  color: var(--text-secondary, #a0a0b8);
+}
+
+.bubble:hover .timestamp {
+  opacity: 1;
+}
+
+/* ── Inline code ──────────────────────────────────────────────────────── */
+
+.inlineCode {
+  display: inline;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 12.5px;
+  background: rgba(0, 0, 0, 0.25);
+  color: #c9d1e0;
+}
+
+.bubbleUser .inlineCode {
+  background: rgba(0, 0, 0, 0.25);
+  color: #d0e0ff;
+}
+
+/* ── Fenced code block ────────────────────────────────────────────────── */
+
+.codeBlock {
+  position: relative;
+  margin: 8px 0;
+  border-radius: var(--border-radius, 8px);
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.pre {
+  margin: 0;
+  padding: 12px 14px;
+  padding-top: 36px; /* leave room for copy button */
+  overflow-x: auto;
+  font-family: "JetBrains Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #c9d1e0;
+}
+
+.copyButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 3px 10px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text-secondary, #a0a0b8);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  z-index: 1;
+}
+
+.copyButton:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary, #e8e8f0);
+}
