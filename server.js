@@ -249,6 +249,27 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "GET" && req.url === "/status") {
+    const geminiKey = process.env.GEMINI_API_KEY;
+    const openaiKey = process.env.OPENAI_API_KEY;
+
+    let provider, model;
+    if (geminiKey) {
+      provider = "Gemini";
+      model = "gemini-2.5-flash";
+    } else if (openaiKey) {
+      provider = "OpenAI";
+      model = "gpt-4o-mini";
+    } else {
+      provider = "Offline";
+      model = "none";
+    }
+
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ provider, model }));
+    return;
+  }
+
   res.writeHead(404, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ error: "Not Found" }));
 });

@@ -80,3 +80,20 @@ export async function sendChatMessage(
   const data = (await response.json()) as ChatResponse;
   return data;
 }
+
+/** The active LLM provider and model as reported by the backend. */
+export interface LLMStatus {
+  provider: "Gemini" | "OpenAI" | "Offline";
+  model: string;
+}
+
+/** Fetches which LLM the backend is currently using. */
+export async function fetchLLMStatus(): Promise<LLMStatus> {
+  try {
+    const response = await fetch(`${BASE_URL}/status`);
+    if (!response.ok) throw new Error("status fetch failed");
+    return (await response.json()) as LLMStatus;
+  } catch {
+    return { provider: "Offline", model: "none" };
+  }
+}
