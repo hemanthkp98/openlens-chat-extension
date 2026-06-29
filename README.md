@@ -86,6 +86,23 @@ npm run dev
 
 ---
 
+## Testing
+
+The project uses **Jest** and **ts-jest** for unit tests, split into frontend (JSDOM browser-mocked environment) and backend (Node environment) project configurations.
+
+```bash
+# Run all unit tests
+npm run test
+
+# Run tests and generate coverage report (outputs to coverage/ folder)
+npm run test:coverage
+```
+
+### Coverage targets
+The test suites are designed to cover both API routing, state hooks, React rendering, shell sanitization, and copy fallback execution paths, maintaining **>85% coverage** across all files.
+
+---
+
 ## Install in OpenLens
 
 ### Method 1 — Recommended (tarball drag-and-drop)
