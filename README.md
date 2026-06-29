@@ -109,7 +109,7 @@ npm pack
 npm run build
 
 # Copy to OpenLens extensions folder
-cp -r . ~/.k8slens/extensions/openlens-chat-extension
+cp -r dist/* "/Users/hemanthkp/Library/Application Support/OpenLens/node_modules/openlens-chat-extension/dist/"
 ```
 
 Then reload OpenLens: **View → Reload** (or `Ctrl+R` / `Cmd+R`).
