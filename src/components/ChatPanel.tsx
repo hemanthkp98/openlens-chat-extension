@@ -11,8 +11,9 @@
  */
 
 import { Renderer } from "@k8slens/extensions";
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useChat } from "../hooks/useChat";
+import { fetchLLMStatus, type LLMStatus } from "../api/chatClient";
 import { ChatInput } from "./ChatInput";
 import { MessageList } from "./MessageList";
 import styles from "../styles/ChatPanel.module.css";
@@ -29,8 +30,27 @@ function getClusterContext() {
 
 export const ChatPanel: React.FC = () => {
   const context = getClusterContext();
-  const { messages, isLoading, sendMessage, clearHistory, llmStatus } = useChat(context);
+  const { messages, isLoading, sendMessage, clearHistory, llmStatus: llmStatusFromChat } = useChat(context);
   const listRef = useRef<HTMLDivElement>(null);
+  const [llmStatus, setLlmStatus] = useState<LLMStatus | null>(null);
+
+  // Try GET /status on mount for immediate badge display
+  useEffect(() => {
+    console.log("[KubeChat] ChatPanel mounted, fetching status...");
+    fetchLLMStatus().then((s) => {
+      console.log("[KubeChat] fetchLLMStatus returned:", s);
+      if (s.provider !== "Offline") {
+        console.log("[KubeChat] Setting llmStatus from mount fetch:", s);
+        setLlmStatus(s);
+      }
+    });
+  }, []);
+
+  // Also update from chat responses (reliable fallback inside Electron)
+  useEffect(() => {
+    console.log("[KubeChat] llmStatusFromChat updated:", llmStatusFromChat);
+    if (llmStatusFromChat) setLlmStatus(llmStatusFromChat);
+  }, [llmStatusFromChat]);
 
   const handleSend = useCallback(
     async (text: string) => {
@@ -57,6 +77,24 @@ export const ChatPanel: React.FC = () => {
           {context.clusterName !== "unknown" && (
             <span className={styles.clusterBadge}>{context.clusterName}</span>
           )}
+          {/* LLM badge — shown in header so it's always visible */}
+          {llmStatus && (
+            <span
+              className={[
+                styles.llmBadge,
+                llmStatus.provider === "Gemini"  ? styles.llmGemini  : "",
+                llmStatus.provider === "OpenAI"  ? styles.llmOpenAI  : "",
+                llmStatus.provider === "Offline" ? styles.llmOffline : "",
+              ].filter(Boolean).join(" ")}
+              title={`LLM: ${llmStatus.provider} — ${llmStatus.model}`}
+            >
+              <span className={styles.llmDot} aria-hidden="true" />
+              {llmStatus.provider === "Gemini"  && "✦ "}
+              {llmStatus.provider === "OpenAI"  && "⬡ "}
+              {llmStatus.provider === "Offline" && "○ "}
+              {llmStatus.model !== "none" ? llmStatus.model : "Offline"}
+            </span>
+          )}
         </div>
         <button
           className={styles.clearButton}
@@ -80,7 +118,6 @@ export const ChatPanel: React.FC = () => {
           onSend={handleSend} 
           isLoading={isLoading} 
           userQueries={messages.filter(m => m.role === "user").map(m => m.content)}
-          llmStatus={llmStatus}
         />
       </footer>
     </div>

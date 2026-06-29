@@ -10,7 +10,6 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import type { LLMStatus } from "../api/chatClient";
 import styles from "../styles/ChatInput.module.css";
 
 const MAX_CHARS = 2_000;
@@ -21,10 +20,9 @@ interface ChatInputProps {
   onSend: (text: string) => Promise<void>;
   isLoading: boolean;
   userQueries: string[];
-  llmStatus: LLMStatus | null;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({ onSend, isLoading, userQueries, llmStatus }) => {
+export const ChatInput: React.FC<ChatInputProps> = ({ onSend, isLoading, userQueries }) => {
   const [value, setValue] = useState("");
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [draftValue, setDraftValue] = useState("");
@@ -164,27 +162,6 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSend, isLoading, userQue
           {value.length} / {MAX_CHARS}
         </span>
       </div>
-
-      {/* LLM badge */}
-      {llmStatus && (
-        <div
-          className={[
-            styles.llmBadge,
-            llmStatus.provider === "Gemini"  ? styles.llmGemini  : "",
-            llmStatus.provider === "OpenAI"  ? styles.llmOpenAI  : "",
-            llmStatus.provider === "Offline" ? styles.llmOffline : "",
-          ].filter(Boolean).join(" ")}
-          title={`Backend LLM: ${llmStatus.provider} / ${llmStatus.model}`}
-        >
-          <span className={styles.llmDot} aria-hidden="true" />
-          <span className={styles.llmLabel}>
-            {llmStatus.provider === "Gemini"  && "✦ "}
-            {llmStatus.provider === "OpenAI"  && "⬡ "}
-            {llmStatus.provider === "Offline" && "○ "}
-            {llmStatus.model !== "none" ? llmStatus.model : "Offline mode"}
-          </span>
-        </div>
-      )}
     </div>
   );
 };
