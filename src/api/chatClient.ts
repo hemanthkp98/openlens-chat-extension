@@ -27,6 +27,8 @@ export interface ChatPayload {
 
 export interface ChatResponse {
   reply: string;
+  provider?: "Gemini" | "OpenAI" | "Offline";
+  model?: string;
 }
 
 /** Non-2xx responses are surfaced as a typed error. */

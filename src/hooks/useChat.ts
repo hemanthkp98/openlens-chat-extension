@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { sendChatMessage, type KubeContext, type HistoryMessage } from "../api/chatClient";
+import { sendChatMessage, type KubeContext, type HistoryMessage, type LLMStatus } from "../api/chatClient";
 
 export interface ChatMessage {
   id: string;
@@ -22,6 +22,7 @@ interface UseChatReturn {
   error: string | null;
   sendMessage: (text: string) => Promise<void>;
   clearHistory: () => void;
+  llmStatus: LLMStatus | null;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -81,6 +82,7 @@ export function useChat(context: KubeContext): UseChatReturn {
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [llmStatus, setLlmStatus] = useState<LLMStatus | null>(null);
 
   // Re-load history when the active cluster changes
   useEffect(() => {
@@ -132,6 +134,11 @@ export function useChat(context: KubeContext): UseChatReturn {
           timestamp: new Date(),
         };
 
+        // Update the LLM badge from the response metadata
+        if (response.provider && response.model) {
+          setLlmStatus({ provider: response.provider, model: response.model });
+        }
+
         setMessages((prev) => [...prev, assistantMessage]);
       } catch (err: unknown) {
         const errorText =
@@ -164,5 +171,5 @@ export function useChat(context: KubeContext): UseChatReturn {
     }
   }, [context.clusterName]);
 
-  return { messages, isLoading, error, sendMessage, clearHistory };
+  return { messages, isLoading, error, sendMessage, clearHistory, llmStatus };
 }

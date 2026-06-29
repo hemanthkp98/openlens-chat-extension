@@ -84,7 +84,7 @@ async function gatherClusterState(kubeContext) {
   return contextString;
 }
 
-// LLM completions handler
+// LLM completions handler — returns { reply, provider, model }
 async function getLLMResponse(message, context, history = []) {
   const geminiKey = process.env.GEMINI_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
@@ -139,15 +139,26 @@ async function getLLMResponse(message, context, history = []) {
       const response = await makeHttpsRequest(url, headers, body);
       if (response.ok) {
         const data = await response.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response text received from Gemini.";
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response text received from Gemini.";
+        return { reply: text, provider: "Gemini", model: "gemini-2.5-flash" };
       } else {
         const text = await response.text();
+        // 503 = overloaded — surface a friendlier message
+        const parsed = JSON.parse(text);
+        const isOverloaded = response.status === 503 || parsed?.error?.status === "UNAVAILABLE";
+        if (isOverloaded) {
+          return {
+            reply: `### ⏳ Gemini is busy\n\nThe model is experiencing high demand right now. Please wait a moment and try again.`,
+            provider: "Gemini",
+            model: "gemini-2.5-flash"
+          };
+        }
         console.error("Gemini API returned error status:", response.status, text);
-        return `### ❌ Gemini API Error (${response.status})\n\`\`\`json\n${text}\n\`\`\``;
+        return { reply: `### ❌ Gemini API Error (${response.status})\n\`\`\`json\n${text}\n\`\`\``, provider: "Gemini", model: "gemini-2.5-flash" };
       }
     } catch (e) {
       console.error("Gemini API call failed:", e);
-      return `### ❌ Gemini Connection Failed\n\`\`\`text\n${e.message}\n\`\`\``;
+      return { reply: `### ❌ Gemini Connection Failed\n\`\`\`text\n${e.message}\n\`\`\``, provider: "Gemini", model: "gemini-2.5-flash" };
     }
   }
 
@@ -183,29 +194,34 @@ async function getLLMResponse(message, context, history = []) {
       const response = await makeHttpsRequest(url, headers, body);
       if (response.ok) {
         const data = await response.json();
-        return data.choices?.[0]?.message?.content || "No response text received from OpenAI.";
+        const text = data.choices?.[0]?.message?.content || "No response text received from OpenAI.";
+        return { reply: text, provider: "OpenAI", model: "gpt-4o-mini" };
       } else {
         const text = await response.text();
         console.error("OpenAI API returned error status:", response.status, text);
-        return `### ❌ OpenAI API Error (${response.status})\n\`\`\`json\n${text}\n\`\`\``;
+        return { reply: `### ❌ OpenAI API Error (${response.status})\n\`\`\`json\n${text}\n\`\`\``, provider: "OpenAI", model: "gpt-4o-mini" };
       }
     } catch (e) {
       console.error("OpenAI API call failed:", e);
-      return `### ❌ OpenAI Connection Failed\n\`\`\`text\n${e.message}\n\`\`\``;
+      return { reply: `### ❌ OpenAI Connection Failed\n\`\`\`text\n${e.message}\n\`\`\``, provider: "OpenAI", model: "gpt-4o-mini" };
     }
   }
 
   // Standard LLM fallback if no keys are provided
-  return `### 💡 Assistant Response\n` +
-         `I received your question: "${message}"\n\n` +
-         `To get **real AI-generated responses** using an LLM, please set one of these environment variables before starting the backend server:\n` +
-         `- \`GEMINI_API_KEY\` (Gemini 3.5)\n` +
-         `- \`OPENAI_API_KEY\` (GPT-4o)\n\n` +
-         `Example command to start with LLM:\n` +
-         `\`\`\`bash\n` +
-         `GEMINI_API_KEY="your-key-here" node server.js\n` +
-         `\`\`\`\n` +
-         `*Currently running in offline helper mode.*`;
+  return {
+    reply: `### 💡 Assistant Response\n` +
+      `I received your question: "${message}"\n\n` +
+      `To get **real AI-generated responses** using an LLM, please set one of these environment variables before starting the backend server:\n` +
+      `- \`GEMINI_API_KEY\` (Gemini 2.5 Flash)\n` +
+      `- \`OPENAI_API_KEY\` (GPT-4o mini)\n\n` +
+      `Example command to start with LLM:\n` +
+      `\`\`\`bash\n` +
+      `GEMINI_API_KEY="your-key-here" node server.js\n` +
+      `\`\`\`\n` +
+      `*Currently running in offline helper mode.*`,
+    provider: "Offline",
+    model: "none"
+  };
 }
 
 const server = http.createServer(async (req, res) => {
@@ -236,10 +252,10 @@ const server = http.createServer(async (req, res) => {
         console.log(`[Query] ${userMessage} (${context.clusterName}) | history: ${history.length} turns`);
 
         // Forward straight to LLM with gathered cluster context and conversation history
-        const reply = await getLLMResponse(userMessage, context, history);
+        const result = await getLLMResponse(userMessage, context, history);
 
         res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ reply }));
+        res.end(JSON.stringify({ reply: result.reply, provider: result.provider, model: result.model }));
       } catch (err) {
         console.error(err);
         res.writeHead(400, { "Content-Type": "application/json" });
