@@ -20,3 +20,5 @@ yarn-error.log*
 
 # Local AI context (never commit)
 CLAUDE.md
+.agents/
+
