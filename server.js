@@ -85,7 +85,7 @@ async function gatherClusterState(kubeContext) {
 }
 
 // LLM completions handler
-async function getLLMResponse(message, context) {
+async function getLLMResponse(message, context, history = []) {
   const geminiKey = process.env.GEMINI_API_KEY;
   const openaiKey = process.env.OPENAI_API_KEY;
 
@@ -113,10 +113,22 @@ async function getLLMResponse(message, context) {
 
       const body = JSON.stringify({
         contents: [
+          // First turn: system prompt with live cluster state
           {
             role: "user",
             parts: [{ text: systemPrompt }]
           },
+          // Required model acknowledgement to open the conversation
+          {
+            role: "model",
+            parts: [{ text: "Understood. I have reviewed the live cluster state and I am ready to help." }]
+          },
+          // Inject prior conversation turns (alternating user / model)
+          ...history.map(m => ({
+            role: m.role === "assistant" ? "model" : "user",
+            parts: [{ text: m.content }]
+          })),
+          // Final user message
           {
             role: "user",
             parts: [{ text: `User Query: ${message}` }]
@@ -159,6 +171,8 @@ async function getLLMResponse(message, context) {
                      liveClusterState + "\n" +
                      `Using the live cluster state above, answer the user's question accurately.`
           },
+          // Inject prior conversation turns so the model can resolve references
+          ...history.map(m => ({ role: m.role, content: m.content })),
           {
             role: "user",
             content: message
@@ -217,11 +231,12 @@ const server = http.createServer(async (req, res) => {
         const payload = JSON.parse(body);
         const userMessage = payload.message || "";
         const context = payload.context || {};
+        const history = Array.isArray(payload.history) ? payload.history : [];
 
-        console.log(`[Query] ${userMessage} (${context.clusterName})`);
+        console.log(`[Query] ${userMessage} (${context.clusterName}) | history: ${history.length} turns`);
 
-        // Forward straight to LLM with gathered cluster context
-        const reply = await getLLMResponse(userMessage, context);
+        // Forward straight to LLM with gathered cluster context and conversation history
+        const reply = await getLLMResponse(userMessage, context, history);
 
         res.writeHead(200, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ reply }));

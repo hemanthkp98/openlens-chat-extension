@@ -7,7 +7,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { sendChatMessage, type KubeContext } from "../api/chatClient";
+import { sendChatMessage, type KubeContext, type HistoryMessage } from "../api/chatClient";
 
 export interface ChatMessage {
   id: string;
@@ -105,6 +105,14 @@ export function useChat(context: KubeContext): UseChatReturn {
         timestamp: new Date(),
       };
 
+      // Build conversation history (last 20 non-error turns, oldest first)
+      // so the LLM can resolve pronoun references like "it" or "that pod".
+      const MAX_HISTORY = 20;
+      const history: HistoryMessage[] = messages
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .slice(-MAX_HISTORY)
+        .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
+
       // Optimistic UI: show user message immediately
       setMessages((prev) => [...prev, userMessage]);
       setIsLoading(true);
@@ -114,6 +122,7 @@ export function useChat(context: KubeContext): UseChatReturn {
         const response = await sendChatMessage({
           message: trimmed,
           context,
+          history,
         });
 
         const assistantMessage: ChatMessage = {

@@ -29,9 +29,16 @@ OpenLens UI
     "clusterName": "my-cluster",
     "server": "my-context",
     "namespace": "default"
-  }
+  },
+  "history": [
+    { "role": "user",      "content": "Tell me about the nginx pod" },
+    { "role": "assistant", "content": "The nginx pod is running in kube-system..." }
+  ]
 }
 ```
+
+> `history` contains the last ≤ 20 non-error turns (oldest first) so the LLM
+> can resolve references like "it" or "that pod" across message turns.
 
 ### Response shape
 ```json
@@ -179,3 +186,42 @@ openlens-chat-extension/
 | "Request timed out" | Backend is unreachable; check `CHAT_API_URL` |
 | Blank panel, no error | Open DevTools (`Cmd+Option+I`) and check the Console tab |
 | Build fails on Node 18+ | Switch to Node 16.14.2 via `nvm use 16.14.2` |
+
+---
+
+## Changelog
+
+All notable changes to this project are documented here.
+Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
+
+---
+
+### [Unreleased] — `feat/conversation-context-memory`
+
+#### Added
+- **Conversation context memory** — the chat now maintains a rolling window of the
+  last 20 turns (user + assistant) and forwards them to the backend on every
+  request, enabling the LLM to resolve pronoun references ("it", "that pod",
+  "the one I mentioned") across message turns.
+- `HistoryMessage` type in `chatClient.ts` (`{ role, content }`).
+- `history` field in `ChatPayload` and in the `POST /chat` JSON body.
+- Multi-turn `contents` array for the **Gemini** path (alternating `user` /
+  `model` roles as required by the Gemini API).
+- History injection into the **OpenAI** `messages` array between the system
+  prompt and the new user message.
+- Backend log now includes history depth: `[Query] ... | history: N turns`.
+
+---
+
+### [0.1.0] — Initial release
+
+#### Added
+- OpenLens/FreeLens renderer extension with an AI chat sidebar.
+- `ChatPanel`, `MessageList`, `MessageBubble`, `ChatInput` components.
+- `useChat` hook with optimistic UI updates and per-cluster `localStorage` history.
+- `chatClient.ts` — typed fetch client with 30 s `AbortController` timeout.
+- Plain Node.js backend (`server.js`) — no framework, no external deps.
+- Dual LLM support: **Gemini 2.5 Flash** (primary) and **GPT-4o-mini** (fallback).
+- Live cluster state injection via `kubectl get nodes/namespaces/pods`.
+- Offline helper mode when no API key is configured.
+- CSS Modules styling using Lens CSS custom properties.
