@@ -12,9 +12,17 @@ export interface KubeContext {
   namespace: string;
 }
 
+/** A single turn from the conversation history sent to the backend. */
+export interface HistoryMessage {
+  role: "user" | "assistant";
+  content: string;
+}
+
 export interface ChatPayload {
   message: string;
   context: KubeContext;
+  /** Up to the last 20 non-error messages, oldest first. */
+  history: HistoryMessage[];
 }
 
 export interface ChatResponse {
