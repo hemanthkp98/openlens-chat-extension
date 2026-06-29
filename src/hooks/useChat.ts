@@ -135,7 +135,9 @@ export function useChat(context: KubeContext): UseChatReturn {
         };
 
         // Update the LLM badge from the response metadata
+        console.log("[KubeChat] chatClient response:", response);
         if (response.provider && response.model) {
+          console.log("[KubeChat] Setting llmStatus in hook state:", { provider: response.provider, model: response.model });
           setLlmStatus({ provider: response.provider, model: response.model });
         }
 
