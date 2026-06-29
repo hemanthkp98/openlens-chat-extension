@@ -40,14 +40,57 @@ interface CodeBlockProps {
   code: string;
 }
 
+function fallbackCopyText(text: string): boolean {
+  try {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.width = "2em";
+    textArea.style.height = "2em";
+    textArea.style.padding = "0";
+    textArea.style.border = "none";
+    textArea.style.outline = "none";
+    textArea.style.boxShadow = "none";
+    textArea.style.background = "transparent";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    const successful = document.execCommand("copy");
+    document.body.removeChild(textArea);
+    return successful;
+  } catch (err) {
+    console.error("Fallback clipboard copy failed:", err);
+    return false;
+  }
+}
+
 const CodeBlock: React.FC<CodeBlockProps> = ({ code }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(() => {
-    navigator.clipboard.writeText(code).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2_000);
-    });
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      navigator.clipboard.writeText(code)
+        .then(() => {
+          setCopied(true);
+          setTimeout(() => setCopied(false), 2_000);
+        })
+        .catch((err) => {
+          console.warn("navigator.clipboard failed, trying fallback copy:", err);
+          const success = fallbackCopyText(code);
+          if (success) {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2_000);
+          }
+        });
+    } else {
+      const success = fallbackCopyText(code);
+      if (success) {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2_000);
+      }
+    }
   }, [code]);
 
   return (
