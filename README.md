@@ -196,13 +196,33 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ---
 
-### [Unreleased] — `feat/conversation-context-memory`
+### [Unreleased] — `feat/unit-testing`
+
+#### Added
+- **Unit Testing Infrastructure** — integrated **Jest** and **ts-jest** for dynamic JavaScript/TypeScript test compilation and execution.
+- **JSDOM browser test support** — configured JSDOM environment, extended DOM matchers, and polyfilled `requestAnimationFrame` for frontend components and hook tests.
+- **ES Module CSS mocking** — added custom proxy mock in `styleMock.js` handling default imports and `__esModule` flags to compile CSS module components cleanly.
+- **Frontend test suites**:
+  - `chatClient.test.ts` (API payload routing, timeout Abort logic, non-2xx failures).
+  - `useChat.test.ts` (localStorage lifecycle, cluster switches, history truncation logic).
+  - `MessageBubble.test.tsx` (markdown bold/code parsing, copy-to-clipboard API + fallback executions).
+- **Backend test suite** (`server.test.js`):
+  - Indirect and direct tests for server logic.
+  - Kubectl command arg validation & shell injection sanitization rules.
+  - Gemini / OpenAI mock integrations testing 200, 503 overloaded routes.
+  - Active LLM status routes (`GET /status`, `OPTIONS`, `POST /chat`, `GET /unknown`).
+
+---
+
+### [0.2.0] — `feat/conversation-context-memory`
 
 #### Added
 - **Conversation context memory** — the chat now maintains a rolling window of the
   last 20 turns (user + assistant) and forwards them to the backend on every
   request, enabling the LLM to resolve pronoun references ("it", "that pod",
   "the one I mentioned") across message turns.
+- **Active LLM badge** — renders a pill badge in the header indicating which LLM
+  is currently active (with Gemini, OpenAI, and Offline color themes).
 - `HistoryMessage` type in `chatClient.ts` (`{ role, content }`).
 - `history` field in `ChatPayload` and in the `POST /chat` JSON body.
 - Multi-turn `contents` array for the **Gemini** path (alternating `user` /
@@ -210,6 +230,7 @@ Format follows [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - History injection into the **OpenAI** `messages` array between the system
   prompt and the new user message.
 - Backend log now includes history depth: `[Query] ... | history: N turns`.
+- Robust clipboard copy fallback for Electron contexts.
 
 ---
 

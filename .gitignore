@@ -2,6 +2,7 @@
 node_modules/
 
 # Build outputs
+coverage/
 dist/
 
 # OS metadata
