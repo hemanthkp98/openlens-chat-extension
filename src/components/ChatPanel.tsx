@@ -11,8 +11,9 @@
  */
 
 import { Renderer } from "@k8slens/extensions";
-import React, { useCallback, useRef } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useChat } from "../hooks/useChat";
+import { fetchLLMStatus, type LLMStatus } from "../api/chatClient";
 import { ChatInput } from "./ChatInput";
 import { MessageList } from "./MessageList";
 import styles from "../styles/ChatPanel.module.css";
@@ -31,6 +32,12 @@ export const ChatPanel: React.FC = () => {
   const context = getClusterContext();
   const { messages, isLoading, sendMessage, clearHistory } = useChat(context);
   const listRef = useRef<HTMLDivElement>(null);
+  const [llmStatus, setLlmStatus] = useState<LLMStatus | null>(null);
+
+  // Fetch which LLM the backend is using, once on mount
+  useEffect(() => {
+    fetchLLMStatus().then(setLlmStatus);
+  }, []);
 
   const handleSend = useCallback(
     async (text: string) => {
@@ -80,6 +87,7 @@ export const ChatPanel: React.FC = () => {
           onSend={handleSend} 
           isLoading={isLoading} 
           userQueries={messages.filter(m => m.role === "user").map(m => m.content)}
+          llmStatus={llmStatus}
         />
       </footer>
     </div>
