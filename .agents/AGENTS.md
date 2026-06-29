@@ -7,3 +7,5 @@
 - Before running any `docker` or `kubectl` command, check that Colima is running (`colima status`). If it is stopped, start it with `colima start` before proceeding.
 - The Docker socket is at `~/.colima/default/docker.sock` (not the default `/var/run/docker.sock`).
 - **Committing**: Always commit *only* when the user explicitly says so (e.g. "Commit the changes"). Never commit automatically or proactively without explicit instruction.
+- **Changelog**: Always update the changelog (if it exists on the repo, e.g. in README or CHANGELOG.md) post-commit or when wrapping up a feature.
+

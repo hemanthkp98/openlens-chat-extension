@@ -290,6 +290,11 @@ const server = http.createServer(async (req, res) => {
   res.end(JSON.stringify({ error: "Not Found" }));
 });
 
-server.listen(PORT, () => {
-  console.log(`AI Backend listening on http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  server.listen(PORT, () => {
+    console.log(`AI Backend listening on http://localhost:${PORT}`);
+  });
+}
+
+module.exports = { server, runKubectl, getLLMResponse, gatherClusterState };
+
