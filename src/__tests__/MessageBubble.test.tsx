@@ -177,4 +177,22 @@ describe("MessageBubble Component", () => {
     const bubble = getByText("Something went wrong").closest("div");
     expect(bubble).toHaveClass("bubbleError");
   });
+
+  it("renders system messages as a custom divider text", () => {
+    const message = {
+      id: "8",
+      role: "system" as const,
+      content: "Context cleared",
+      timestamp: mockTimestamp,
+    };
+
+    const { getByText, queryByText } = render(<MessageBubble message={message} />);
+    
+    expect(getByText("Context cleared")).toBeInTheDocument();
+    // It should not render with error icon
+    expect(queryByText("⚠️")).not.toBeInTheDocument();
+    
+    const textEl = getByText("Context cleared");
+    expect(textEl).toHaveClass("systemText");
+  });
 });

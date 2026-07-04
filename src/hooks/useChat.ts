@@ -11,7 +11,7 @@ import { sendChatMessage, type KubeContext, type HistoryMessage, type LLMStatus 
 
 export interface ChatMessage {
   id: string;
-  role: "user" | "assistant" | "error";
+  role: "user" | "assistant" | "error" | "system";
   content: string;
   timestamp: Date;
 }
@@ -22,6 +22,7 @@ interface UseChatReturn {
   error: string | null;
   sendMessage: (text: string) => Promise<void>;
   clearHistory: () => void;
+  clearContext: () => void;
   llmStatus: LLMStatus | null;
 }
 
@@ -107,10 +108,14 @@ export function useChat(context: KubeContext): UseChatReturn {
         timestamp: new Date(),
       };
 
+      // Find the last index of context clear boundary
+      const lastClearIndex = messages.map(m => m.role === "system" && m.content === "Context cleared").lastIndexOf(true);
+      const messagesForHistory = lastClearIndex !== -1 ? messages.slice(lastClearIndex + 1) : messages;
+
       // Build conversation history (last 20 non-error turns, oldest first)
       // so the LLM can resolve pronoun references like "it" or "that pod".
       const MAX_HISTORY = 20;
-      const history: HistoryMessage[] = messages
+      const history: HistoryMessage[] = messagesForHistory
         .filter((m) => m.role === "user" || m.role === "assistant")
         .slice(-MAX_HISTORY)
         .map((m) => ({ role: m.role as "user" | "assistant", content: m.content }));
@@ -160,7 +165,7 @@ export function useChat(context: KubeContext): UseChatReturn {
         setIsLoading(false);
       }
     },
-    [context, isLoading]
+    [context, isLoading, messages]
   );
 
   const clearHistory = useCallback((): void => {
@@ -173,5 +178,15 @@ export function useChat(context: KubeContext): UseChatReturn {
     }
   }, [context.clusterName]);
 
-  return { messages, isLoading, error, sendMessage, clearHistory, llmStatus };
+  const clearContext = useCallback((): void => {
+    const systemMessage: ChatMessage = {
+      id: generateId(),
+      role: "system",
+      content: "Context cleared",
+      timestamp: new Date(),
+    };
+    setMessages((prev) => [...prev, systemMessage]);
+  }, []);
+
+  return { messages, isLoading, error, sendMessage, clearHistory, clearContext, llmStatus };
 }

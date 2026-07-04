@@ -132,6 +132,61 @@ describe("useChat hook", () => {
     expect(localStorage.getItem("kube-chat:test-cluster")).toBe("[]");
   });
 
+  it("should append a system message when clearContext is called", () => {
+    const mockHistory = [
+      { id: "1", role: "user", content: "hello", timestamp: new Date().toISOString() },
+    ];
+    localStorage.setItem("kube-chat:test-cluster", JSON.stringify(mockHistory));
+
+    const { result } = renderHook(() => useChat(mockContext));
+    expect(result.current.messages).toHaveLength(1);
+
+    act(() => {
+      result.current.clearContext();
+    });
+
+    expect(result.current.messages).toHaveLength(2);
+    expect(result.current.messages[1].role).toBe("system");
+    expect(result.current.messages[1].content).toBe("Context cleared");
+
+    // Verify localStorage has persisted with system message
+    const raw = localStorage.getItem("kube-chat:test-cluster");
+    expect(raw).not.toBeNull();
+    const parsed = JSON.parse(raw!);
+    expect(parsed).toHaveLength(2);
+    expect(parsed[1].role).toBe("system");
+    expect(parsed[1].content).toBe("Context cleared");
+  });
+
+  it("should only send history after the last context clear marker when sending a message", async () => {
+    (sendChatMessage as jest.Mock).mockResolvedValue({ reply: "reply" });
+
+    const mockHistory = [
+      { id: "1", role: "user", content: "pre-clear 1", timestamp: new Date().toISOString() },
+      { id: "2", role: "assistant", content: "pre-clear 2", timestamp: new Date().toISOString() },
+      { id: "3", role: "system", content: "Context cleared", timestamp: new Date().toISOString() },
+      { id: "4", role: "user", content: "post-clear 1", timestamp: new Date().toISOString() },
+    ];
+    localStorage.setItem("kube-chat:test-cluster", JSON.stringify(mockHistory));
+
+    const { result } = renderHook(() => useChat(mockContext));
+    expect(result.current.messages).toHaveLength(4);
+
+    (sendChatMessage as jest.Mock).mockClear();
+
+    await act(async () => {
+      await result.current.sendMessage("new query");
+    });
+
+    expect(sendChatMessage).toHaveBeenCalledTimes(1);
+    const lastCallArg = (sendChatMessage as jest.Mock).mock.calls[0][0];
+
+    // The history should only include messages after the system marker
+    expect(lastCallArg.history).toHaveLength(1);
+    expect(lastCallArg.history[0].content).toBe("post-clear 1");
+    expect(lastCallArg.message).toBe("new query");
+  });
+
   it("should truncate history to last 20 messages when sending", async () => {
     (sendChatMessage as jest.Mock).mockResolvedValue({ reply: "reply" });
 

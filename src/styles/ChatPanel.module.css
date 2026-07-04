@@ -64,6 +64,35 @@
   white-space: nowrap;
 }
 
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.clearContextButton {
+  padding: 5px 14px;
+  border-radius: var(--border-radius, 6px);
+  border: 1px solid rgba(var(--primary-rgb, 100, 130, 255), 0.3);
+  background: rgba(var(--primary-rgb, 100, 130, 255), 0.08);
+  color: var(--primary, #6482ff);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.clearContextButton:hover:not(:disabled) {
+  background: rgba(var(--primary-rgb, 100, 130, 255), 0.16);
+  color: #ffffff;
+  border-color: rgba(var(--primary-rgb, 100, 130, 255), 0.5);
+}
+
+.clearContextButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .clearButton {
   padding: 5px 14px;
   border-radius: var(--border-radius, 6px);

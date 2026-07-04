@@ -160,3 +160,47 @@
   background: rgba(255, 255, 255, 0.12);
   color: var(--text-primary, #e8e8f0);
 }
+
+/* ── System Message Divider ─────────────────────────────────────────── */
+
+.systemRow {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin: 16px 0;
+  animation: fadeIn 0.15s ease-out forwards;
+}
+
+.systemDivider {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0 10px;
+}
+
+.systemDivider::before,
+.systemDivider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.15);
+}
+
+.systemDivider::before {
+  margin-right: 12px;
+}
+
+.systemDivider::after {
+  margin-left: 12px;
+}
+
+.systemText {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-secondary, #a0a0b8);
+  background: transparent;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
