@@ -198,6 +198,16 @@ const InlineMarkdown: React.FC<{ text: string }> = ({ text }) => {
 // ──────────────────────────────────────────────────────────────────────────────
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+  if (message.role === "system") {
+    return (
+      <div className={styles.systemRow}>
+        <div className={styles.systemDivider}>
+          <span className={styles.systemText}>{message.content}</span>
+        </div>
+      </div>
+    );
+  }
+
   const isUser = message.role === "user";
   const isError = message.role === "error";
 

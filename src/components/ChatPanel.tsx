@@ -20,7 +20,7 @@ import styles from "../styles/ChatPanel.module.css";
 
 function getClusterContext() {
   // Always null-check — activeCluster is null when no cluster is open
-  const cluster = Renderer.Catalog.activeCluster;
+  const cluster = Renderer.Catalog.activeCluster as any;
   return {
     clusterName: cluster?.metadata?.name ?? "unknown",
     server: cluster?.spec?.kubeconfigContext ?? "",
@@ -30,7 +30,7 @@ function getClusterContext() {
 
 export const ChatPanel: React.FC = () => {
   const context = getClusterContext();
-  const { messages, isLoading, sendMessage, clearHistory, llmStatus: llmStatusFromChat } = useChat(context);
+  const { messages, isLoading, sendMessage, clearHistory, clearContext, llmStatus: llmStatusFromChat } = useChat(context);
   const listRef = useRef<HTMLDivElement>(null);
   const [llmStatus, setLlmStatus] = useState<LLMStatus | null>(null);
 
@@ -51,6 +51,9 @@ export const ChatPanel: React.FC = () => {
     console.log("[KubeChat] llmStatusFromChat updated:", llmStatusFromChat);
     if (llmStatusFromChat) setLlmStatus(llmStatusFromChat);
   }, [llmStatusFromChat]);
+
+  const isContextAlreadyCleared =
+    messages.length === 0 || messages[messages.length - 1].role === "system";
 
   const handleSend = useCallback(
     async (text: string) => {
@@ -96,15 +99,26 @@ export const ChatPanel: React.FC = () => {
             </span>
           )}
         </div>
-        <button
-          className={styles.clearButton}
-          onClick={clearHistory}
-          title="Clear conversation history"
-          aria-label="Clear conversation history"
-          disabled={isLoading}
-        >
-          Clear
-        </button>
+        <div className={styles.headerActions}>
+          <button
+            className={styles.clearContextButton}
+            onClick={clearContext}
+            title="Clear API context (keeps message history)"
+            aria-label="Clear API context (keeps message history)"
+            disabled={isLoading || isContextAlreadyCleared}
+          >
+            Clear Context
+          </button>
+          <button
+            className={styles.clearButton}
+            onClick={clearHistory}
+            title="Clear conversation history"
+            aria-label="Clear conversation history"
+            disabled={isLoading}
+          >
+            Clear
+          </button>
+        </div>
       </header>
 
       {/* ── Message list ── */}
