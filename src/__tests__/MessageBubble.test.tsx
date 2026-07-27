@@ -4,6 +4,11 @@ import { MessageBubble } from "../components/MessageBubble";
 
 describe("MessageBubble Component", () => {
   const mockTimestamp = new Date("2026-06-29T12:00:00Z");
+  const mockContext = {
+    clusterName: "test-cluster",
+    server: "http://test-server",
+    namespace: "default",
+  };
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -17,7 +22,7 @@ describe("MessageBubble Component", () => {
       timestamp: mockTimestamp,
     };
 
-    const { getByText, queryByText } = render(<MessageBubble message={message} />);
+    const { getByText, queryByText } = render(<MessageBubble message={message} context={mockContext} />);
     
     // User messages render content directly as a string
     expect(getByText("Hello **world** with `code` block")).toBeInTheDocument();
@@ -33,7 +38,7 @@ describe("MessageBubble Component", () => {
       timestamp: mockTimestamp,
     };
 
-    const { getByText } = render(<MessageBubble message={message} />);
+    const { getByText } = render(<MessageBubble message={message} context={mockContext} />);
     
     // Check parsed bold element
     const boldEl = getByText("bold");
@@ -52,7 +57,7 @@ describe("MessageBubble Component", () => {
       timestamp: mockTimestamp,
     };
 
-    const { getByText } = render(<MessageBubble message={message} />);
+    const { getByText } = render(<MessageBubble message={message} context={mockContext} />);
     
     expect(getByText("kubectl get pods -n kube-system")).toBeInTheDocument();
     expect(getByText("Copy")).toBeInTheDocument();
@@ -95,7 +100,7 @@ describe("MessageBubble Component", () => {
         timestamp: mockTimestamp,
       };
 
-      const { getByText, findByText } = render(<MessageBubble message={message} />);
+      const { getByText, findByText } = render(<MessageBubble message={message} context={mockContext} />);
       const copyBtn = getByText("Copy");
 
       fireEvent.click(copyBtn);
@@ -121,7 +126,7 @@ describe("MessageBubble Component", () => {
         timestamp: mockTimestamp,
       };
 
-      const { getByText, findByText } = render(<MessageBubble message={message} />);
+      const { getByText, findByText } = render(<MessageBubble message={message} context={mockContext} />);
       const copyBtn = getByText("Copy");
 
       fireEvent.click(copyBtn);
@@ -151,7 +156,7 @@ describe("MessageBubble Component", () => {
         timestamp: mockTimestamp,
       };
 
-      const { getByText, findByText } = render(<MessageBubble message={message} />);
+      const { getByText, findByText } = render(<MessageBubble message={message} context={mockContext} />);
       const copyBtn = getByText("Copy");
 
       fireEvent.click(copyBtn);
@@ -169,7 +174,7 @@ describe("MessageBubble Component", () => {
       timestamp: mockTimestamp,
     };
 
-    const { getByText } = render(<MessageBubble message={message} />);
+    const { getByText } = render(<MessageBubble message={message} context={mockContext} />);
     
     expect(getByText("Something went wrong")).toBeInTheDocument();
     expect(getByText("⚠️")).toBeInTheDocument();
@@ -186,7 +191,7 @@ describe("MessageBubble Component", () => {
       timestamp: mockTimestamp,
     };
 
-    const { getByText, queryByText } = render(<MessageBubble message={message} />);
+    const { getByText, queryByText } = render(<MessageBubble message={message} context={mockContext} />);
     
     expect(getByText("Context cleared")).toBeInTheDocument();
     // It should not render with error icon

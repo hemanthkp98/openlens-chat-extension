@@ -9,11 +9,13 @@
 import React from "react";
 import { type ChatMessage } from "../hooks/useChat";
 import { MessageBubble } from "./MessageBubble";
+import { type KubeContext } from "../api/chatClient";
 import styles from "../styles/MessageList.module.css";
 
 interface MessageListProps {
   messages: ChatMessage[];
   isLoading: boolean;
+  context: KubeContext;
 }
 
 const EmptyState: React.FC = () => (
@@ -42,6 +44,7 @@ const TypingIndicator: React.FC = () => (
 export const MessageList: React.FC<MessageListProps> = ({
   messages,
   isLoading,
+  context,
 }) => {
   if (messages.length === 0 && !isLoading) {
     return <EmptyState />;
@@ -50,7 +53,7 @@ export const MessageList: React.FC<MessageListProps> = ({
   return (
     <div className={styles.list} role="log" aria-label="Chat messages">
       {messages.map((msg) => (
-        <MessageBubble key={msg.id} message={msg} />
+        <MessageBubble key={msg.id} message={msg} context={context} />
       ))}
       {isLoading && <TypingIndicator />}
     </div>
