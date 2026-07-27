@@ -99,3 +99,33 @@ export async function fetchLLMStatus(): Promise<LLMStatus> {
     return { provider: "Offline", model: "none" };
   }
 }
+
+export interface ExecutePayload {
+  command?: string;
+  manifest_yaml?: string;
+  context: KubeContext;
+}
+
+export interface ExecuteResponse {
+  success: boolean;
+  stdout?: string;
+  error?: string;
+}
+
+export async function executeCommand(
+  payload: ExecutePayload
+): Promise<ExecuteResponse> {
+  const response = await fetch(`${BASE_URL}/execute`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "(no body)");
+    throw new Error(`Execution error: ${body}`);
+  }
+
+  const data = (await response.json()) as ExecuteResponse;
+  return data;
+}

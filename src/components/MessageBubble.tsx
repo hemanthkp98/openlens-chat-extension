@@ -11,10 +11,12 @@
 
 import React, { useCallback, useState } from "react";
 import { type ChatMessage } from "../hooks/useChat";
+import { executeCommand, type KubeContext } from "../api/chatClient";
 import styles from "../styles/MessageBubble.module.css";
 
 interface MessageBubbleProps {
   message: ChatMessage;
+  context: KubeContext;
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -66,46 +68,127 @@ function fallbackCopyText(text: string): boolean {
   }
 }
 
-const CodeBlock: React.FC<CodeBlockProps> = ({ code }) => {
+interface CodeBlockProps {
+  code: string;
+  context: KubeContext;
+}
+
+const CodeBlock: React.FC<CodeBlockProps> = ({ code, context }) => {
   const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editableCode, setEditableCode] = useState(code);
+  const [status, setStatus] = useState<"idle" | "running" | "success" | "error">("idle");
+  const [message, setMessage] = useState("");
+
+  const isCommand = code.trim().startsWith("kubectl");
+  const isYaml = code.includes("apiVersion:") && code.includes("kind:");
 
   const handleCopy = useCallback(() => {
+    const textToCopy = isEditing ? editableCode : code;
     if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-      navigator.clipboard.writeText(code)
+      navigator.clipboard.writeText(textToCopy)
         .then(() => {
           setCopied(true);
           setTimeout(() => setCopied(false), 2_000);
         })
         .catch((err) => {
           console.warn("navigator.clipboard failed, trying fallback copy:", err);
-          const success = fallbackCopyText(code);
+          const success = fallbackCopyText(textToCopy);
           if (success) {
             setCopied(true);
             setTimeout(() => setCopied(false), 2_000);
           }
         });
     } else {
-      const success = fallbackCopyText(code);
+      const success = fallbackCopyText(textToCopy);
       if (success) {
         setCopied(true);
         setTimeout(() => setCopied(false), 2_000);
       }
     }
-  }, [code]);
+  }, [code, editableCode, isEditing]);
+
+  const handleExecute = useCallback(async () => {
+    setStatus("running");
+    setMessage("");
+    try {
+      const payload = isCommand
+        ? { command: editableCode, context }
+        : { manifest_yaml: editableCode, context };
+
+      const response = await executeCommand(payload);
+      if (response.success) {
+        setStatus("success");
+        setMessage(response.stdout || "Operation succeeded with no output.");
+      } else {
+        setStatus("error");
+        setMessage(response.error || "Operation failed.");
+      }
+    } catch (err: any) {
+      setStatus("error");
+      setMessage(err.message || "Failed to make execution request.");
+    }
+  }, [editableCode, isCommand, context]);
 
   return (
     <div className={styles.codeBlock}>
-      <button
-        className={styles.copyButton}
-        onClick={handleCopy}
-        aria-label="Copy code"
-        title="Copy to clipboard"
-      >
-        {copied ? "✓ Copied" : "Copy"}
-      </button>
-      <pre className={styles.pre}>
-        <code>{code}</code>
-      </pre>
+      <div className={styles.codeBlockActions}>
+        {(isCommand || isYaml) && (
+          <>
+            <button
+              className={styles.actionButton}
+              onClick={() => setIsEditing(!isEditing)}
+              title={isEditing ? "Preview formatted block" : "Edit command / manifest"}
+            >
+              {isEditing ? "Preview" : "Edit"}
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={handleExecute}
+              disabled={status === "running"}
+              title={isCommand ? "Run command in cluster" : "Apply manifest YAML to cluster"}
+            >
+              {status === "running" ? "Running..." : isCommand ? "Run Command" : "Apply to Cluster"}
+            </button>
+          </>
+        )}
+        <button
+          className={styles.copyButton}
+          onClick={handleCopy}
+          aria-label="Copy code"
+          title="Copy to clipboard"
+        >
+          {copied ? "✓ Copied" : "Copy"}
+        </button>
+      </div>
+
+      {isEditing ? (
+        <textarea
+          className={styles.textarea}
+          value={editableCode}
+          onChange={(e) => setEditableCode(e.target.value)}
+          spellCheck={false}
+        />
+      ) : (
+        <pre className={styles.pre}>
+          <code>{editableCode}</code>
+        </pre>
+      )}
+
+      {status !== "idle" && (
+        <div
+          className={[
+            styles.executionStatus,
+            status === "running" ? styles.statusRunning : "",
+            status === "success" ? styles.statusSuccess : "",
+            status === "error" ? styles.statusError : "",
+          ].filter(Boolean).join(" ")}
+        >
+          {status === "running" && "⏳ Executing request..."}
+          {status === "success" && `✓ Succeeded:\n${message}`}
+          {status === "error" && `❌ Error:\n${message}`}
+        </div>
+      )}
     </div>
   );
 };
@@ -116,9 +199,10 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ code }) => {
 
 interface MarkdownProps {
   text: string;
+  context: KubeContext;
 }
 
-const MarkdownLite: React.FC<MarkdownProps> = ({ text }) => {
+const MarkdownLite: React.FC<MarkdownProps> = ({ text, context }) => {
   // Split on fenced code blocks first
   const fencePattern = /```[\s\S]*?```/g;
   const parts: React.ReactNode[] = [];
@@ -133,7 +217,7 @@ const MarkdownLite: React.FC<MarkdownProps> = ({ text }) => {
 
     // Strip the opening/closing backticks (and optional language tag)
     const raw = match[0].replace(/^```[^\n]*\n?/, "").replace(/```$/, "");
-    parts.push(<CodeBlock key={`code-${match.index}`} code={raw} />);
+    parts.push(<CodeBlock key={`code-${match.index}`} code={raw} context={context} />);
     lastIndex = match.index + match[0].length;
   }
 
@@ -197,7 +281,7 @@ const InlineMarkdown: React.FC<{ text: string }> = ({ text }) => {
 // MessageBubble
 // ──────────────────────────────────────────────────────────────────────────────
 
-export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
+export const MessageBubble: React.FC<MessageBubbleProps> = ({ message, context }) => {
   if (message.role === "system") {
     return (
       <div className={styles.systemRow}>
@@ -235,7 +319,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({ message }) => {
         {isUser ? (
           message.content
         ) : (
-          <MarkdownLite text={message.content} />
+          <MarkdownLite text={message.content} context={context} />
         )}
         <span className={styles.timestamp} aria-hidden="true">
           {relativeTime(message.timestamp)}

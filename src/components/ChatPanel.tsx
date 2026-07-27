@@ -123,7 +123,7 @@ export const ChatPanel: React.FC = () => {
 
       {/* ── Message list ── */}
       <div className={styles.body} ref={listRef}>
-        <MessageList messages={messages} isLoading={isLoading} />
+        <MessageList messages={messages} isLoading={isLoading} context={context} />
       </div>
 
       {/* ── Input ── */}

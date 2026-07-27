@@ -1,6 +1,9 @@
 const http = require("http");
 const https = require("https");
 const { exec } = require("child_process");
+const fs = require("fs");
+const path = require("path");
+const os = require("os");
 
 const PORT = 8000;
 
@@ -26,6 +29,66 @@ function runKubectl(args) {
       }
     });
   });
+}
+
+// Helper to write temp file and apply manifest
+function applyManifest(manifestYaml, kubeContext) {
+  return new Promise((resolve) => {
+    const tempDir = os.tmpdir();
+    const tempFilePath = path.join(tempDir, `manifest-${Date.now()}.yaml`);
+
+    fs.writeFile(tempFilePath, manifestYaml, (err) => {
+      if (err) {
+        return resolve({ success: false, error: `Failed to write temp file: ${err.message}` });
+      }
+
+      const contextFlag = kubeContext ? `--context=${kubeContext}` : "";
+      const command = `kubectl apply -f "${tempFilePath}" ${contextFlag}`;
+
+      exec(command, (error, stdout, stderr) => {
+        // Clean up temp file
+        fs.unlink(tempFilePath, () => {});
+
+        if (error) {
+          resolve({ success: false, error: stderr || error.message });
+        } else {
+          resolve({ success: true, stdout });
+        }
+      });
+    });
+  });
+}
+
+// Helper to parse a command string into arguments and run it securely
+function executeCLICommand(commandStr, kubeContext) {
+  const trimmed = commandStr.trim();
+  if (!trimmed.startsWith("kubectl")) {
+    return Promise.resolve({ success: false, error: "Command must start with kubectl" });
+  }
+
+  const rawArgs = trimmed.split(/\s+/).slice(1);
+  const contextFlag = kubeContext ? [`--context=${kubeContext}`] : [];
+
+  const filteredArgs = [];
+  let skip = false;
+  for (let i = 0; i < rawArgs.length; i++) {
+    if (skip) {
+      skip = false;
+      continue;
+    }
+    const arg = rawArgs[i];
+    if (arg === "--context") {
+      skip = true;
+      continue;
+    }
+    if (arg.startsWith("--context=")) {
+      continue;
+    }
+    filteredArgs.push(arg);
+  }
+
+  const finalArgs = [...filteredArgs, ...contextFlag];
+  return runKubectl(finalArgs);
 }
 
 // Helper to make HTTPS requests without external dependencies
@@ -236,6 +299,48 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
+  if (req.method === "POST" && req.url === "/execute") {
+    let body = "";
+    req.on("data", (chunk) => {
+      body += chunk;
+    });
+
+    req.on("end", async () => {
+      try {
+        const payload = JSON.parse(body);
+        const command = payload.command;
+        const manifestYaml = payload.manifest_yaml;
+        const context = payload.context || {};
+        const clusterName = context.clusterName && context.clusterName !== "unknown" ? context.clusterName : null;
+
+        console.log(`[Execute] manifest_yaml: ${!!manifestYaml}, command: ${command} (${clusterName})`);
+
+        let result;
+        if (manifestYaml) {
+          result = await applyManifest(manifestYaml, clusterName);
+        } else if (command) {
+          result = await executeCLICommand(command, clusterName);
+        } else {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({ error: "Missing command or manifest_yaml" }));
+          return;
+        }
+
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({
+          success: result.success,
+          stdout: result.stdout,
+          error: result.error
+        }));
+      } catch (err) {
+        console.error(err);
+        res.writeHead(500, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Internal server error" }));
+      }
+    });
+    return;
+  }
+
   if (req.method === "POST" && req.url === "/chat") {
     let body = "";
     req.on("data", (chunk) => {
@@ -296,5 +401,5 @@ if (require.main === module) {
   });
 }
 
-module.exports = { server, runKubectl, getLLMResponse, gatherClusterState };
+module.exports = { server, runKubectl, getLLMResponse, gatherClusterState, applyManifest, executeCLICommand };
 
