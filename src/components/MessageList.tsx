@@ -14,18 +14,39 @@ import styles from "../styles/MessageList.module.css";
 interface MessageListProps {
   messages: ChatMessage[];
   isLoading: boolean;
+  onSelectPrompt?: (prompt: string) => void;
 }
 
-const EmptyState: React.FC = () => (
+interface EmptyStateProps {
+  onSelectPrompt?: (prompt: string) => void;
+}
+
+const PRESET_PROMPTS = [
+  { text: "Show failing pods", icon: "🔍" },
+  { text: "List cluster nodes", icon: "📋" },
+  { text: "View recent events", icon: "⚠️" },
+  { text: "List system services", icon: "🌐" },
+];
+
+const EmptyState: React.FC<EmptyStateProps> = ({ onSelectPrompt }) => (
   <div className={styles.emptyState}>
     <span className={styles.emptyIcon} aria-hidden="true">
       🤖
     </span>
     <p className={styles.emptyTitle}>Ask me anything about your cluster</p>
-    <p className={styles.emptyHint}>
-      Try: <em>"How many pods are running?"</em> or{" "}
-      <em>"Show me failing deployments"</em>
-    </p>
+    <div className={styles.suggestionsGrid}>
+      {PRESET_PROMPTS.map((prompt, idx) => (
+        <button
+          key={idx}
+          className={styles.suggestionCard}
+          onClick={() => onSelectPrompt?.(prompt.text)}
+          title={`Click to ask: "${prompt.text}"`}
+        >
+          <span className={styles.suggestionIcon}>{prompt.icon}</span>
+          <span className={styles.suggestionText}>{prompt.text}</span>
+        </button>
+      ))}
+    </div>
   </div>
 );
 
@@ -42,9 +63,10 @@ const TypingIndicator: React.FC = () => (
 export const MessageList: React.FC<MessageListProps> = ({
   messages,
   isLoading,
+  onSelectPrompt,
 }) => {
   if (messages.length === 0 && !isLoading) {
-    return <EmptyState />;
+    return <EmptyState onSelectPrompt={onSelectPrompt} />;
   }
 
   return (
