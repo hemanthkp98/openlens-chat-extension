@@ -116,6 +116,29 @@
   cursor: not-allowed;
 }
 
+.exportButton {
+  padding: 5px 14px;
+  border-radius: var(--border-radius, 6px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: transparent;
+  color: var(--text-secondary, #a0a0b8);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.exportButton:hover:not(:disabled) {
+  background: rgba(var(--primary-rgb, 100, 130, 255), 0.08);
+  color: var(--primary, #6482ff);
+  border-color: rgba(var(--primary-rgb, 100, 130, 255), 0.5);
+}
+
+.exportButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 /* ── Body (scrollable message area) ──────────────────────────────────── */
 
 .body {

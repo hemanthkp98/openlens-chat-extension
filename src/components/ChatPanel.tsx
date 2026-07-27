@@ -68,6 +68,40 @@ export const ChatPanel: React.FC = () => {
     [sendMessage]
   );
 
+  const handleExportMarkdown = useCallback(() => {
+    if (messages.length === 0) return;
+
+    const header = `# Kube Chat History — Cluster: ${context.clusterName}\n*Generated on: ${new Date().toLocaleString()}*\n\n---\n\n`;
+    
+    const content = messages
+      .map((msg) => {
+        const role =
+          msg.role === "user"
+            ? "User"
+            : msg.role === "assistant"
+            ? "Assistant"
+            : "Error";
+        const dateStr = msg.timestamp ? new Date(msg.timestamp).toLocaleString() : "";
+        const timeHeader = dateStr ? ` (${dateStr})` : "";
+        return `### **${role}**${timeHeader}\n\n${msg.content}\n\n`;
+      })
+      .join("---\n\n");
+
+    const blob = new Blob([header + content], {
+      type: "text/markdown;charset=utf-8;",
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute(
+      "download",
+      `kube-chat-${context.clusterName}-${new Date().toISOString().slice(0, 10)}.md`
+    );
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, [messages, context.clusterName]);
+
   return (
     <div className={styles.panel}>
       {/* ── Header ── */}
@@ -101,6 +135,15 @@ export const ChatPanel: React.FC = () => {
         </div>
         <div className={styles.headerActions}>
           <button
+            className={styles.exportButton}
+            onClick={handleExportMarkdown}
+            title="Export conversation history as Markdown"
+            aria-label="Export conversation history as Markdown"
+            disabled={isLoading || messages.length === 0}
+          >
+            Export
+          </button>
+          <button
             className={styles.clearContextButton}
             onClick={clearContext}
             title="Clear API context (keeps message history)"
@@ -123,7 +166,7 @@ export const ChatPanel: React.FC = () => {
 
       {/* ── Message list ── */}
       <div className={styles.body} ref={listRef}>
-        <MessageList messages={messages} isLoading={isLoading} />
+        <MessageList messages={messages} isLoading={isLoading} onSelectPrompt={handleSend} />
       </div>
 
       {/* ── Input ── */}
