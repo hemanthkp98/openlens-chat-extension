@@ -28,6 +28,11 @@ const EmptyState: React.FC = () => (
       Try: <em>"How many pods are running?"</em> or{" "}
       <em>"Show me failing deployments"</em>
     </p>
+    <p className={styles.emptyHint}>
+      Diagnose issues: <em>"Diagnose failing pods & recent warning events"</em>,{" "}
+      <em>"Why is a pod crashing or failing in the cluster?"</em>, or{" "}
+      <em>"Show recent warning events across all namespaces"</em>
+    </p>
   </div>
 );
 
