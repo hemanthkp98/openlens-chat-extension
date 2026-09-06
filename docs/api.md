@@ -76,3 +76,20 @@ The extension sends conversation turns to the backend via a single HTTP POST req
 
 - **Non-2xx HTTP Responses**: Caught by `chatClient.ts` as `ChatApiError(status, body)` and rendered inside a red-tinted error bubble.
 - **Network / Timeout (30s)**: Automatically aborted via `AbortController` and reported with an inline error message.
+
+---
+
+## Live Cluster State Context
+
+Before forwarding a request to the LLM, the backend gathers live cluster state via `gatherClusterState()` in `server.js` and injects it into the system prompt. In addition to nodes, namespaces, and pods, this includes a warning events section:
+
+```text
+--- WARNING EVENTS (RECENT) ---
+NAMESPACE   LAST SEEN   TYPE      REASON      OBJECT      MESSAGE
+default     2m          Warning   BackOff     pod/auth-service-7f99dc-z2q9l   Back-off restarting failed container
+```
+
+- Populated from `kubectl get events -A --field-selector=type=Warning --sort-by=.lastTimestamp`, capped at the 25 most recent entries.
+- Renders `(No recent warning events)` when the cluster has none.
+- If the `get events` command fails (e.g. RBAC restriction or unsupported API), the backend logs a warning and continues with the rest of the cluster state rather than failing the request.
+- The LLM is instructed to cross-reference failing, pending, or restarting pods against this section to identify root causes and suggest remediation.

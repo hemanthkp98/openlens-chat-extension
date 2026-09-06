@@ -126,10 +126,11 @@ function makeHttpsRequest(url, headers, body) {
 async function gatherClusterState(kubeContext) {
   const contextFlag = kubeContext ? [`--context=${kubeContext}`] : [];
 
-  const [nodesRes, nsRes, podsRes] = await Promise.all([
+  const [nodesRes, nsRes, podsRes, eventsRes] = await Promise.all([
     runKubectl(["get", "nodes", "-o", "wide", ...contextFlag]),
     runKubectl(["get", "namespaces", ...contextFlag]),
-    runKubectl(["get", "pods", "-A", "-o", "custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name,STATUS:.status.phase,REASON:.status.containerStatuses[*].state.waiting.reason,IMAGE:.spec.containers[*].image", ...contextFlag])
+    runKubectl(["get", "pods", "-A", "-o", "custom-columns=NAMESPACE:.metadata.namespace,NAME:.metadata.name,STATUS:.status.phase,REASON:.status.containerStatuses[*].state.waiting.reason,IMAGE:.spec.containers[*].image", ...contextFlag]),
+    runKubectl(["get", "events", "-A", "--field-selector=type=Warning", "--sort-by=.lastTimestamp", ...contextFlag])
   ]);
 
   let contextString = "=== LIVE KUBERNETES CLUSTER STATE ===\n\n";
@@ -142,6 +143,20 @@ async function gatherClusterState(kubeContext) {
   }
   if (podsRes.success) {
     contextString += "--- PODS WITH IMAGES (ALL NAMESPACES) ---\n" + podsRes.stdout.trim() + "\n\n";
+  }
+
+  contextString += "--- WARNING EVENTS (RECENT) ---\n";
+  if (!eventsRes.success) {
+    console.warn("Failed to fetch warning events:", eventsRes.error);
+    contextString += "(No recent warning events)\n\n";
+  } else {
+    const eventLines = eventsRes.stdout.trim() ? eventsRes.stdout.trim().split("\n") : [];
+    if (eventLines.length <= 1) {
+      contextString += "(No recent warning events)\n\n";
+    } else {
+      const [header, ...rows] = eventLines;
+      contextString += [header, ...rows.slice(-25)].join("\n") + "\n\n";
+    }
   }
 
   return contextString;
@@ -172,7 +187,10 @@ async function getLLMResponse(message, context, history = []) {
         `Using the live cluster state above, answer the user's question accurately. \n` +
         `- If they ask about resources in a specific namespace (e.g. kube-system), check the data for that namespace.\n` +
         `- If they ask to "set" or "switch" namespace, acknowledge it and explain that you will focus on that namespace for their future questions, and show the resources currently running in it.\n` +
-        `- Keep responses concise, clean, and use Markdown formatting where appropriate. Highlight any failing/restarting pods.`;
+        `- Keep responses concise, clean, and use Markdown formatting where appropriate. Highlight any failing/restarting pods.\n` +
+        `- Cross-reference any failing, pending, or restarting pods against the "--- WARNING EVENTS (RECENT) ---" section to diagnose root causes.\n` +
+        `- Extract and state the specific root cause from the warning events (e.g. missing secret, resource limit reached, crashing entrypoint, volume mount error).\n` +
+        `- Recommend precise, actionable remediation: exact kubectl commands (e.g. \`kubectl describe ...\`, \`kubectl logs ...\`) and/or corrected YAML manifests. Never claim to have executed a mutating command yourself — only suggest it for the user to run.`;
 
       const body = JSON.stringify({
         contents: [
@@ -243,7 +261,10 @@ async function getLLMResponse(message, context, history = []) {
                      `Active Cluster Context: ${clusterName || "default"}\n` +
                      `Active Namespace in UI: ${namespace}\n\n` +
                      liveClusterState + "\n" +
-                     `Using the live cluster state above, answer the user's question accurately.`
+                     `Using the live cluster state above, answer the user's question accurately.\n` +
+                     `- Cross-reference any failing, pending, or restarting pods against the "--- WARNING EVENTS (RECENT) ---" section to diagnose root causes.\n` +
+                     `- Extract and state the specific root cause from the warning events (e.g. missing secret, resource limit reached, crashing entrypoint, volume mount error).\n` +
+                     `- Recommend precise, actionable remediation: exact kubectl commands (e.g. \`kubectl describe ...\`, \`kubectl logs ...\`) and/or corrected YAML manifests. Never claim to have executed a mutating command yourself — only suggest it for the user to run.`
           },
           // Inject prior conversation turns so the model can resolve references
           ...history.map(m => ({ role: m.role, content: m.content })),
